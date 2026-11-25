@@ -3,8 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Screen 1 — Trading Terminal</title>
+<title>Screen 1 — Trading App</title>
 <link rel="stylesheet" href="shared/style.css">
+<style>
+  .app { display: grid; gap: 12px; grid-template-columns: 1fr; }
+  @media (min-width: 1000px) { .app { grid-template-columns: 240px 1fr 300px; } }
+  .list { font-family: var(--mono); font-size: 12px; }
+  .list button { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--text); padding: 10px 6px; cursor: pointer; display: flex; justify-content: space-between; }
+  .list button.sel { background: var(--panel-2); }
+  .row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .tabs button { font-family: var(--mono); font-size: 12px; background: none; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 4px 9px; cursor: pointer; }
+  .tabs button.on { color: var(--text); border-color: #3b4756; background: var(--panel-2); }
+  input, select { font-family: var(--mono); font-size: 13px; background: #05070a; color: var(--text); border: 1px solid #3b4756; border-radius: 6px; padding: 7px 8px; width: 100%; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: #111820; border: 1px solid #3b4756; padding: 10px 14px; border-radius: 8px; font-family: var(--mono); font-size: 12px; display: none; }
+  .toast.show { display: block; }
+  .msg { font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .msg b { font-family: var(--mono); color: var(--blue); }
+  .tag { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+</style>
 </head>
 <body>
 <nav class="switcher">
@@ -16,106 +33,236 @@
 </nav>
 
 <main class="wrap">
-  <p class="title">Screen 1 · YH / SWK · Secondary laptop</p>
-  <h1>KLX-TECH — Live Trading Terminal</h1>
+  <p class="title">Screen 1 · YH / SWK · Secondary laptop · Trading app</p>
+  <div class="app">
 
-  <div class="grid two">
-    <div class="panel">
-      <canvas id="chart" width="900" height="320"></canvas>
-      <div class="banner green" id="ban-filled">ORDER FILLED: +28% PROFIT</div>
-      <div class="banner red" id="ban-margin">MARGIN CALL - FORCED LIQUIDATION!</div>
-      <div class="banner amber" id="ban-lev">LEVERAGE x10 — POSITION OPENED</div>
-    </div>
+    <!-- Watchlist -->
+    <section class="panel">
+      <p class="label">Watchlist</p>
+      <div class="list" id="watch"></div>
+    </section>
 
-    <div class="panel">
-      <p class="label">Account</p>
-      <p class="label" style="margin-top:12px">Balance</p>
-      <p class="big" id="balance"></p>
-      <p class="label" style="margin-top:14px">Open position</p>
-      <p class="big" id="pos">—</p>
-      <p class="label" style="margin-top:14px">Unrealised P/L</p>
-      <p class="big" id="pl">—</p>
-      <div class="footnote" id="note">Idle. Press Next scene to start the demo.</div>
-    </div>
-  </div>
+    <!-- Chart + details -->
+    <section>
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div class="label" id="sname"></div>
+            <div class="big" id="sym"></div>
+          </div>
+          <div style="text-align:right">
+            <div class="big" id="last"></div>
+            <div id="chg" class="mono" style="font-family:var(--mono);font-size:13px"></div>
+          </div>
+        </div>
+        <div class="tabs" id="ranges">
+          <button data-r="30">1M</button><button data-r="90">3M</button><button data-r="180" class="on">6M</button>
+        </div>
+        <canvas id="chart" width="900" height="320"></canvas>
+        <div class="grid three" style="margin-top:10px;font-family:var(--mono);font-size:12px">
+          <div><span class="tag">Open</span><br id="x"><span id="open"></span></div>
+          <div><span class="tag">Day range</span><br><span id="range"></span></div>
+          <div><span class="tag">Volume</span><br><span id="vol"></span></div>
+        </div>
+        <div class="footnote" id="meta"></div>
+      </div>
 
-  <div class="scene-bar">
-    <span class="step" id="step">Scene 0 / 4</span>
-    <button class="btn" id="reset">Reset</button>
-    <button class="btn ok" id="next">Next scene ▶</button>
+      <div class="panel" style="margin-top:12px">
+        <p class="label">Orders & history</p>
+        <table style="margin-top:6px">
+          <thead><tr><th>Date</th><th>Stock</th><th>Side</th><th>Qty</th><th>Price</th><th>Status</th></tr></thead>
+          <tbody id="orders"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Account, ticket, messages -->
+    <section style="display:grid;gap:12px;align-content:start">
+      <div class="panel">
+        <p class="label">Account</p>
+        <div class="row"><span>Cash balance</span><span id="cash"></span></div>
+        <div class="row"><span>Open positions</span><span>0</span></div>
+        <div class="row"><span>Equity</span><span id="equity"></span></div>
+        <div class="row"><span>Buying power</span><span id="bp"></span></div>
+      </div>
+
+      <div class="panel">
+        <p class="label">Order ticket · <span id="tk-sym"></span></p>
+        <div class="tabs" style="margin-top:8px">
+          <button id="side-buy" class="on">BUY</button><button id="side-sell">SELL</button>
+        </div>
+        <div style="display:grid;gap:8px">
+          <label class="label">Quantity<input id="qty" type="number" min="1" value="100"></label>
+          <label class="label">Price (RM)<input id="px" type="number" step="0.01"></label>
+          <label class="label">Margin<select id="lev"><option value="1">Cash (1x)</option><option value="5">Margin 5x</option><option value="10">Margin 10x</option></select></label>
+          <div class="row"><span>Est. value</span><span id="est"></span></div>
+          <div class="row"><span>Margin required</span><span id="mreq"></span></div>
+          <button class="btn ok" id="place">Place order</button>
+          <div class="footnote">Demo only. Orders are not sent anywhere.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="label">Messages · YH</p>
+        <div id="msgs" style="margin-top:6px"></div>
+      </div>
+    </section>
   </div>
 </main>
+<div class="toast" id="toast"></div>
 
 <script src="shared/data.js"></script>
 <script>
 (function () {
-  const D = window.PHANTOM.trade;
-  const cv = document.getElementById("chart");
-  const ctx = cv.getContext("2d");
+  const T = window.PHANTOM.trade;
   const $ = (id) => document.getElementById(id);
   const money = (v) => "RM " + v.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  $("balance").textContent = money(D.balanceBefore);
+  const num = (v, d = 2) => v.toLocaleString("en-MY", { minimumFractionDigits: d, maximumFractionDigits: d });
 
-  // Deterministic random walk so the chart looks the same on every run.
-  function rng(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
-  const rand = rng(20261126);
-  const candles = [];
-  let p = D.entryPrice * 0.92;
-  for (let i = 0; i < 70; i++) {
-    const o = p, c = o * (1 + (rand() - 0.45) * 0.035);
-    const h = Math.max(o, c) * (1 + rand() * 0.012), l = Math.min(o, c) * (1 - rand() * 0.012);
-    candles.push({ o, c, h, l }); p = c;
+  // ---- Build a deterministic daily price series per stock, with markers for orders ----
+  function seeded(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+  function buildSeries(sym, cfg) {
+    const r = seeded([...sym].reduce((a, c) => a + c.charCodeAt(0), 0) * 7919);
+    const n = cfg.days, closes = [];
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1);
+      let base = cfg.start + (cfg.end - cfg.start) * t;
+      if (cfg.crashFrom !== undefined && i >= cfg.crashFrom) {
+        const k = (i - cfg.crashFrom) / (n - 1 - cfg.crashFrom);
+        base = 6.40 + (cfg.crashTo - 6.40) * k;
+      }
+      closes.push(base * (1 + (r() - 0.5) * cfg.noise));
+    }
+    // pin order prices exactly on their days
+    (T.stocks[sym].orders || []).forEach((o) => { if (o.side !== "SYS") closes[o.day] = o.price; else closes[o.day] = o.price; });
+    const candles = closes.map((c, i) => {
+      const o = i === 0 ? c * 0.99 : closes[i - 1];
+      const h = Math.max(o, c) * (1 + r() * 0.012), l = Math.min(o, c) * (1 - r() * 0.012);
+      return { o, c, h, l };
+    });
+    return candles;
   }
-  // Surge into the entry window, then the flash crash for the last candles.
-  for (let i = 0; i < 8; i++) { const k = candles[candles.length - 8 + i]; const f = 1 + (i + 1) * 0.02; k.o *= f; k.c *= f; k.h *= f; k.l *= f; }
-  const crashStart = candles.length; let cp = candles[candles.length - 1].c;
-  const crashSteps = [0.92, 0.84, 0.74, 0.66, 0.6];
-  crashSteps.forEach((m) => { const o = cp, c = D.entryPrice * m; candles.push({ o, c, h: o * 1.01, l: c * 0.98 }); cp = c; });
+  const data = {};
+  Object.keys(T.stocks).forEach((s) => { data[s] = buildSeries(s, T.stocks[s].series); });
 
-  let visible = 60; let scene = 0; let timer = null;
+  // date for a day index (index 179 = today)
+  function dayDate(idx) {
+    const d = new Date(T.today + "T00:00:00"); d.setDate(d.getDate() - (179 - idx));
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  }
 
-  function draw(markerPrice) {
+  let cur = "KLX-TECH", range = 180, side = "BUY";
+
+  // ---- Watchlist ----
+  function renderWatch() {
+    $("watch").innerHTML = Object.keys(T.stocks).map((s) => {
+      const c = data[s][data[s].length - 1].c, p = T.stocks[s].prevClose;
+      const pct = ((c - p) / p) * 100;
+      return '<button class="' + (s === cur ? "sel" : "") + '" data-s="' + s + '"><span>' + s + '</span><span>' + num(c) + ' <span class="' + (pct >= 0 ? "green" : "red") + '">' + (pct >= 0 ? "+" : "") + pct.toFixed(2) + "%</span></span></button>";
+    }).join("");
+  }
+
+  // ---- Chart ----
+  const cv = $("chart"), ctx = cv.getContext("2d");
+  function drawChart() {
+    const S = T.stocks[cur], all = data[cur], N = Math.min(range, all.length);
+    const start = all.length - N, sl = all.slice(start);
     const W = cv.width, H = cv.height; ctx.clearRect(0, 0, W, H);
-    const slice = candles.slice(0, visible);
-    const lo = Math.min(...slice.map((k) => k.l)) * 0.97, hi = Math.max(...slice.map((k) => k.h)) * 1.03;
-    const y = (v) => H - ((v - lo) / (hi - lo)) * (H - 20) - 10;
-    const cw = W / 70;
-    slice.forEach((k, i) => {
+    const lo = Math.min(...sl.map((k) => k.l)) * 0.97, hi = Math.max(...sl.map((k) => k.h)) * 1.03;
+    const y = (v) => H - ((v - lo) / (hi - lo)) * (H - 24) - 12;
+    const cw = W / N;
+    // grid
+    ctx.strokeStyle = "#141a22"; ctx.lineWidth = 1;
+    for (let g = 0; g <= 4; g++) { const yy = 12 + (H - 24) * (g / 4); ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke(); }
+    sl.forEach((k, i) => {
       const up = k.c >= k.o, col = up ? "#22c55e" : "#ef4444", x = i * cw + cw / 2;
       ctx.strokeStyle = col; ctx.beginPath(); ctx.moveTo(x, y(k.h)); ctx.lineTo(x, y(k.l)); ctx.stroke();
-      ctx.fillStyle = col; ctx.fillRect(x - cw * 0.32, y(Math.max(k.o, k.c)), cw * 0.64, Math.max(2, Math.abs(y(k.o) - y(k.c))));
+      ctx.fillStyle = col; ctx.fillRect(x - cw * 0.3, y(Math.max(k.o, k.c)), cw * 0.6, Math.max(2, Math.abs(y(k.o) - y(k.c))));
     });
-    if (markerPrice) {
-      ctx.setLineDash([6, 6]); ctx.strokeStyle = "#f59e0b"; ctx.beginPath();
-      ctx.moveTo(0, y(markerPrice)); ctx.lineTo(W, y(markerPrice)); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle = "#f59e0b"; ctx.font = "22px ui-monospace, Menlo, monospace";
-      ctx.fillText(D.symbol + "  " + markerPrice.toFixed(2), 12, y(markerPrice) - 8);
-    }
+    // order markers within visible range
+    (S.orders || []).forEach((o) => {
+      const i = o.day - start; if (i < 0 || i >= N) return;
+      const x = i * cw + cw / 2, yy = y(o.price);
+      ctx.fillStyle = o.side === "BUY" ? "#38bdf8" : (o.side === "SELL" ? "#f59e0b" : "#ef4444");
+      ctx.beginPath(); ctx.arc(x, yy, 5, 0, Math.PI * 2); ctx.fill();
+    });
+    // last price line
+    const last = all[all.length - 1].c;
+    ctx.setLineDash([5, 5]); ctx.strokeStyle = "#6b7786"; ctx.beginPath(); ctx.moveTo(0, y(last)); ctx.lineTo(W, y(last)); ctx.stroke(); ctx.setLineDash([]);
+    // axis labels
+    ctx.fillStyle = "#6b7786"; ctx.font = "16px ui-monospace, Menlo, monospace";
+    ctx.fillText(num(hi / 1.03), W - 70, 16); ctx.fillText(num(lo / 0.97), W - 70, H - 4);
   }
 
-  function show(id) { $(id).classList.add("show"); }
-  function hideAll() { ["ban-filled", "ban-margin", "ban-lev"].forEach((b) => $(b).classList.remove("show")); }
-
-  function render() {
-    const last = candles[visible - 1];
-    if (scene === 0) { visible = 60; draw(null); $("step").textContent = "Scene 0 / 4"; }
-    if (scene === 1) { visible = 70; draw(D.entryPrice); hideAll(); show("ban-filled");
-      $("pos").textContent = "—"; $("pl").innerHTML = '<span class="green">+' + D.profitPct + '%</span>';
-      $("note").textContent = "YH: 'Now is the perfect entry window!'"; $("step").textContent = "Scene 1 / 4"; }
-    if (scene === 2) { hideAll(); show("ban-lev"); $("pos").innerHTML = "RM 80,000 × " + D.leverage;
-      $("pl").innerHTML = '<span class="amber">borrowed margin</span>'; $("note").textContent = "Both borrow heavily to execute high-margin leveraged trades."; $("step").textContent = "Scene 2 / 4"; }
-    if (scene === 3) { visible = 70; draw(D.marginCallPrice); hideAll(); show("ban-margin");
-      $("pl").innerHTML = '<span class="red">−RM 79,990.00</span>'; $("note").textContent = "Cascading flash crash. Savings drained to cover the shortfall."; $("step").textContent = "Scene 3 / 4"; }
-    if (scene === 4) { hideAll(); $("balance").innerHTML = '<span class="red">RM ' + D.balanceAfter.toFixed(2) + "</span>";
-      $("pos").textContent = "CLOSED"; $("pl").textContent = "—"; $("note").textContent = "BALANCE: RM 10.01"; $("step").textContent = "Scene 4 / 4"; }
-    if (scene < 3) $("balance").textContent = money(D.balanceBefore);
-    if (scene === 3) $("balance").textContent = money(D.balanceBefore);
-    if (scene === 0) { $("pos").textContent = "—"; $("pl").textContent = "—"; }
-    $("next").disabled = scene >= 4;
+  function renderHeader() {
+    const S = T.stocks[cur], all = data[cur], last = all[all.length - 1], prev = S.prevClose;
+    const chg = last.c - prev, pct = (chg / prev) * 100;
+    $("sname").textContent = S.name + " · " + S.sector;
+    $("sym").textContent = cur;
+    $("last").textContent = num(last.c);
+    $("chg").innerHTML = '<span class="' + (chg >= 0 ? "green" : "red") + '">' + (chg >= 0 ? "+" : "") + num(chg) + " (" + (pct >= 0 ? "+" : "") + pct.toFixed(2) + "%)</span>";
+    $("open").textContent = num(last.o);
+    $("range").textContent = num(S.dayLow) + " – " + num(S.dayHigh);
+    $("vol").textContent = S.volume;
+    $("meta").textContent = "Market cap RM " + S.marketCapRM + " · Prev close " + num(prev) + " · Data is simulated for the demo";
+    $("tk-sym").textContent = cur;
+    if (!$("px").dataset.touched) $("px").value = last.c.toFixed(2);
   }
 
-  $("next").addEventListener("click", () => { scene = Math.min(4, scene + 1); render(); });
-  $("reset").addEventListener("click", () => { scene = 0; hideAll(); render(); });
+  function renderOrders() {
+    const rows = [];
+    Object.keys(T.stocks).forEach((s) => (T.stocks[s].orders || []).forEach((o) => rows.push({ s, o })));
+    rows.sort((a, b) => a.o.day - b.o.day);
+    $("orders").innerHTML = rows.map(({ s, o }) => {
+      const cls = o.side === "SYS" ? "red" : (o.side === "BUY" ? "blue" : "amber");
+      const value = o.qty * o.price;
+      const status = o.side === "SYS" ? '<span class="red">' + o.note + "</span>" : o.note;
+      return "<tr><td>" + dayDate(o.day) + "</td><td>" + s + '</td><td class="' + cls + '">' + o.side + "</td><td>" + o.qty.toLocaleString() + "</td><td>" + num(o.price) + "</td><td>" + status + "</td></tr>";
+    }).join("") || '<tr><td colspan="6">No orders</td></tr>';
+  }
+
+  // ---- Account ----
+  function renderAccount() {
+    $("cash").textContent = money(T.account.cashAfter);
+    $("equity").textContent = money(T.account.cashAfter);
+    $("bp").textContent = money(0);
+  }
+
+  // ---- Ticket ----
+  function renderTicket() {
+    const q = Math.max(0, parseInt($("qty").value || "0", 10));
+    const p = parseFloat($("px").value || "0");
+    const lev = parseInt($("lev").value, 10);
+    const value = q * p;
+    $("est").textContent = money(value);
+    $("mreq").textContent = money(value / lev);
+    $("place").textContent = side === "BUY" ? "Place BUY order" : "Place SELL order";
+  }
+
+  // ---- Messages ----
+  function renderMsgs() {
+    $("msgs").innerHTML = T.messages.map((m) => '<div class="msg"><b>' + m.from + "</b> <span class=\"tag\">" + m.time + "</span><br>" + m.text + "</div>").join("");
+  }
+
+  // ---- Events ----
+  $("watch").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-s]"); if (!b) return;
+    cur = b.dataset.s; $("px").dataset.touched = ""; render();
+  });
+  document.querySelectorAll("#ranges button").forEach((b) => b.addEventListener("click", () => {
+    range = parseInt(b.dataset.r, 10);
+    document.querySelectorAll("#ranges button").forEach((x) => x.classList.toggle("on", x === b));
+    drawChart();
+  }));
+  $("side-buy").addEventListener("click", () => { side = "BUY"; $("side-buy").classList.add("on"); $("side-sell").classList.remove("on"); renderTicket(); });
+  $("side-sell").addEventListener("click", () => { side = "SELL"; $("side-sell").classList.add("on"); $("side-buy").classList.remove("on"); renderTicket(); });
+  ["qty", "px", "lev"].forEach((id) => $(id).addEventListener("input", () => { if (id === "px") $("px").dataset.touched = "1"; renderTicket(); }));
+  $("place").addEventListener("click", () => {
+    const t = $("toast"); t.textContent = "Demo only — this order was not sent. Trading is simulated.";
+    t.classList.add("show"); clearTimeout(window.__t); window.__t = setTimeout(() => t.classList.remove("show"), 2200);
+  });
+
+  function render() { renderWatch(); renderHeader(); drawChart(); renderOrders(); renderAccount(); renderTicket(); renderMsgs(); }
   render();
 })();
 </script>
