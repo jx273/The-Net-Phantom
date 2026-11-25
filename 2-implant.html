@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screen 2 — Settlement Console</title>
+<link rel="stylesheet" href="shared/style.css">
+</head>
+<body>
+<nav class="switcher">
+  <span class="brand">THE NET PHANTOM · PROP SIMULATION</span>
+  <a href="index.html">Index</a>
+  <a href="1-stock.html">1 · Stock</a>
+  <a href="2-implant.html" class="active">2 · Logic</a>
+  <a href="3-auditor.html">3 · Funds</a>
+</nav>
+
+<main class="wrap">
+  <p class="title">Screen 2 · SWK / YH · Main terminal · WORKSTATION 115F</p>
+  <h1>Night Batch Settlement — Console</h1>
+
+  <div class="grid two">
+    <div class="panel">
+      <div class="console" id="console"><span class="m">$ merge nightly_batch_settlement</span>
+<span class="m">Loading settlement rules... OK</span>
+<span class="m">Processing transactions...</span>
+</div>
+      <div class="banner red" id="ban-anom">ANOMALY: rounding condition broken on 1 line</div>
+      <div class="banner amber" id="ban-prompt">EXECUTE MALICIOUS BATCH SCRIPT? [YES / NO]</div>
+      <div class="scene-bar" style="margin-top:8px">
+        <button class="btn" id="btn-yes" disabled>YES</button>
+        <button class="btn ok" id="btn-no" disabled>NO</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="label">Last transaction</p>
+      <p class="big" id="tx">—</p>
+      <p class="label" style="margin-top:14px">Deduction</p>
+      <p class="big red" id="ded">—</p>
+      <p class="label" style="margin-top:14px">Status</p>
+      <p class="big" id="status">—</p>
+      <p class="label" style="margin-top:14px">Accumulated diversion</p>
+      <p class="big green" id="acc">RM 0.00</p>
+      <div class="footnote">Simulation output only. No real settlement system is involved.</div>
+    </div>
+  </div>
+
+  <div class="scene-bar">
+    <span class="step" id="step">Step 0 / 3</span>
+    <button class="btn" id="reset">Reset</button>
+    <button class="btn" id="run">Run settlement ▶</button>
+  </div>
+</main>
+
+<script src="shared/data.js"></script>
+<script>
+(function () {
+  const S = window.PHANTOM.settlement;
+  const $ = (id) => document.getElementById(id);
+  const con = $("console");
+  let step = 0, busy = false;
+
+  function line(html) { con.insertAdjacentHTML("beforeend", "\n" + html); con.scrollTop = con.scrollHeight; }
+  function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
+  function count(el, from, to, ms, fmt) {
+    return new Promise((res) => {
+      const t0 = performance.now();
+      (function tick(now) {
+        const k = Math.min(1, (now - t0) / ms), v = from + (to - from) * k;
+        el.textContent = fmt(v); if (k < 1) requestAnimationFrame(tick); else res();
+      })(t0);
+    });
+  }
+  const money = (v) => "RM " + v.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  async function run() {
+    if (busy || step > 0) return; busy = true; $("run").disabled = true;
+    step = 1; $("step").textContent = "Step 1 / 3";
+    line('<span class="g">Processing ' + S.dailyTransactions.toLocaleString() + ' transactions... OK</span>');
+    await wait(700);
+    line('<span class="r">TX_REF: ' + S.txRef + " | DEDUCTION: -RM " + S.deductionRM.toFixed(2) + " | STATUS: " + S.status + "</span>");
+    $("tx").textContent = S.txRef; $("ded").textContent = "−RM " + S.deductionRM.toFixed(2); $("status").textContent = S.status;
+    $("ban-anom").classList.add("show");
+    await wait(900);
+    step = 2; $("step").textContent = "Step 2 / 3";
+    $("ban-prompt").classList.add("show"); $("btn-yes").disabled = false; $("btn-no").disabled = false;
+    busy = false;
+  }
+
+  async function yes() {
+    if (busy || step !== 2) return; busy = true; $("btn-yes").disabled = true; $("btn-no").disabled = true;
+    $("ban-prompt").classList.remove("show");
+    line('<span class="a">&gt; EXECUTE MALICIOUS BATCH SCRIPT — confirmed</span>');
+    await wait(500);
+    line('<span class="a">DAY 2 - MORNING SETTLEMENT: +' + money(S.day2MorningRM) + "</span>");
+    await count($("acc"), 0, S.day2MorningRM, 900, (v) => money(v));
+    await wait(500);
+    line('<span class="a">MONTH 2 - ACCUMULATED DIVERSION: +' + money(S.month2AccumulatedRM) + "</span>");
+    await count($("acc"), S.day2MorningRM, S.month2AccumulatedRM, 1400, (v) => money(v));
+    step = 3; $("step").textContent = "Step 3 / 3"; busy = false;
+  }
+
+  function no() {
+    if (busy || step !== 2) return;
+    $("ban-prompt").classList.remove("show"); $("btn-yes").disabled = true; $("btn-no").disabled = true;
+    line('<span class="g">&gt; Script not executed. Rollback recommended — report to Technical Lead.</span>');
+    step = 3; $("step").textContent = "Step 3 / 3";
+  }
+
+  function reset() {
+    con.innerHTML = '<span class="m">$ merge nightly_batch_settlement</span>\n<span class="m">Loading settlement rules... OK</span>\n<span class="m">Processing transactions...</span>';
+    ["ban-anom", "ban-prompt"].forEach((b) => $(b).classList.remove("show"));
+    $("tx").textContent = "—"; $("ded").textContent = "—"; $("status").textContent = "—"; $("acc").textContent = "RM 0.00";
+    $("btn-yes").disabled = true; $("btn-no").disabled = true; $("run").disabled = false;
+    step = 0; busy = false; $("step").textContent = "Step 0 / 3";
+  }
+
+  $("run").addEventListener("click", run);
+  $("btn-yes").addEventListener("click", yes);
+  $("btn-no").addEventListener("click", no);
+  $("reset").addEventListener("click", reset);
+})();
+</script>
+</body>
+</html>

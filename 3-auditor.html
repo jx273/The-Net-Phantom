@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screen 3 — Audit Findings</title>
+<link rel="stylesheet" href="shared/style.css">
+</head>
+<body>
+<nav class="switcher">
+  <span class="brand">THE NET PHANTOM · PROP SIMULATION</span>
+  <a href="index.html">Index</a>
+  <a href="1-stock.html">1 · Stock</a>
+  <a href="2-implant.html">2 · Logic</a>
+  <a href="3-auditor.html" class="active">3 · Funds</a>
+</nav>
+
+<main class="wrap">
+  <p class="title">Screen 3 · JX · Audit room · CCO / IEB meeting room</p>
+  <h1>Clearing Ledger Review — Red Flags</h1>
+
+  <div class="grid three">
+    <div class="panel">
+      <p class="label">Total siphoned (<span id="days"></span> days)</p>
+      <p class="big red" id="total">RM 0.00</p>
+      <div class="footnote">Accumulated from rounding fractions, 1 sen per transaction.</div>
+    </div>
+    <div class="panel">
+      <p class="label">Traced to</p>
+      <p class="big" id="ws"></p>
+      <div class="footnote">Deployment MAC: <span id="mac"></span></div>
+    </div>
+    <div class="panel">
+      <p class="label">Case status</p>
+      <div id="status" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:12px">
+    <p class="label">Flagged clearing ledger entries</p>
+    <table>
+      <thead><tr><th>Date</th><th>TX_REF</th><th>Deduction</th><th>Source</th><th>Flag</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <div class="scene-bar">
+    <span class="step" id="step">Findings hidden</span>
+    <button class="btn" id="reveal">Reveal findings ▶</button>
+    <button class="btn ok" id="ccid" disabled>Lodge report: PDRM</button>
+  </div>
+  <div class="banner amber" id="ban-ccid">CCID assigned — VT &amp; YS. Workstations 115F secured for forensic analysis. Badges revoked: 2.</div>
+</main>
+
+<script src="shared/data.js"></script>
+<script>
+(function () {
+  const A = window.PHANTOM.audit, S = window.PHANTOM.settlement;
+  const $ = (id) => document.getElementById(id);
+  const money = (v) => "RM " + v.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  $("days").textContent = A.periodDays;
+  $("ws").textContent = A.workstation;
+  $("mac").textContent = A.macAddress;
+  $("status").innerHTML = '<span class="stamp">UNDER INVESTIGATION</span>';
+
+  // Sample of flagged rows (illustrative, sums are shown only through the total above).
+  const rows = [
+    ["D-60", "#99021", "-0.01", "Batch / 115F", "Rounding break"],
+    ["D-31", "#104562", "-0.01", "Batch / 115F", "Unauthorised script"],
+    ["D-12", "#118830", "-0.01", "Batch / 115F", "Unauthorised script"],
+    ["D-02", "#121907", "-0.01", "Batch / 115F", "Unauthorised script"]
+  ];
+  $("rows").innerHTML = rows.map((r) => '<tr class="flag"><td>' + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td><td>" + r[3] + "</td><td>" + r[4] + "</td></tr>").join("");
+
+  let revealed = false;
+  $("reveal").addEventListener("click", () => {
+    if (revealed) return; revealed = true;
+    $("total").innerHTML = '<span class="red">' + money(A.totalSiphonedRM) + "</span>";
+    $("step").textContent = "Findings revealed: MAC & signatures trace to workstation 115F";
+    $("reveal").disabled = true; $("ccid").disabled = false;
+    $("status").innerHTML = '<span class="stamp">PDRM REPORT PENDING</span>';
+  });
+
+  $("ccid").addEventListener("click", () => {
+    $("ccid").disabled = true;
+    $("status").innerHTML = '<span class="stamp" style="color:#fcd34d;border-color:#713f12">CASE REFERRED — CCID</span>';
+    $("ban-ccid").classList.add("show");
+  });
+})();
+</script>
+</body>
+</html>

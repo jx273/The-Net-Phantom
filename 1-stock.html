@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screen 1 — Trading Terminal</title>
+<link rel="stylesheet" href="shared/style.css">
+</head>
+<body>
+<nav class="switcher">
+  <span class="brand">THE NET PHANTOM · PROP SIMULATION</span>
+  <a href="index.html">Index</a>
+  <a href="1-stock.html" class="active">1 · Stock</a>
+  <a href="2-implant.html">2 · Logic</a>
+  <a href="3-auditor.html">3 · Funds</a>
+</nav>
+
+<main class="wrap">
+  <p class="title">Screen 1 · YH / SWK · Secondary laptop</p>
+  <h1>KLX-TECH — Live Trading Terminal</h1>
+
+  <div class="grid two">
+    <div class="panel">
+      <canvas id="chart" width="900" height="320"></canvas>
+      <div class="banner green" id="ban-filled">ORDER FILLED: +28% PROFIT</div>
+      <div class="banner red" id="ban-margin">MARGIN CALL - FORCED LIQUIDATION!</div>
+      <div class="banner amber" id="ban-lev">LEVERAGE x10 — POSITION OPENED</div>
+    </div>
+
+    <div class="panel">
+      <p class="label">Account</p>
+      <p class="label" style="margin-top:12px">Balance</p>
+      <p class="big" id="balance"></p>
+      <p class="label" style="margin-top:14px">Open position</p>
+      <p class="big" id="pos">—</p>
+      <p class="label" style="margin-top:14px">Unrealised P/L</p>
+      <p class="big" id="pl">—</p>
+      <div class="footnote" id="note">Idle. Press Next scene to start the demo.</div>
+    </div>
+  </div>
+
+  <div class="scene-bar">
+    <span class="step" id="step">Scene 0 / 4</span>
+    <button class="btn" id="reset">Reset</button>
+    <button class="btn ok" id="next">Next scene ▶</button>
+  </div>
+</main>
+
+<script src="shared/data.js"></script>
+<script>
+(function () {
+  const D = window.PHANTOM.trade;
+  const cv = document.getElementById("chart");
+  const ctx = cv.getContext("2d");
+  const $ = (id) => document.getElementById(id);
+  const money = (v) => "RM " + v.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  $("balance").textContent = money(D.balanceBefore);
+
+  // Deterministic random walk so the chart looks the same on every run.
+  function rng(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+  const rand = rng(20261126);
+  const candles = [];
+  let p = D.entryPrice * 0.92;
+  for (let i = 0; i < 70; i++) {
+    const o = p, c = o * (1 + (rand() - 0.45) * 0.035);
+    const h = Math.max(o, c) * (1 + rand() * 0.012), l = Math.min(o, c) * (1 - rand() * 0.012);
+    candles.push({ o, c, h, l }); p = c;
+  }
+  // Surge into the entry window, then the flash crash for the last candles.
+  for (let i = 0; i < 8; i++) { const k = candles[candles.length - 8 + i]; const f = 1 + (i + 1) * 0.02; k.o *= f; k.c *= f; k.h *= f; k.l *= f; }
+  const crashStart = candles.length; let cp = candles[candles.length - 1].c;
+  const crashSteps = [0.92, 0.84, 0.74, 0.66, 0.6];
+  crashSteps.forEach((m) => { const o = cp, c = D.entryPrice * m; candles.push({ o, c, h: o * 1.01, l: c * 0.98 }); cp = c; });
+
+  let visible = 60; let scene = 0; let timer = null;
+
+  function draw(markerPrice) {
+    const W = cv.width, H = cv.height; ctx.clearRect(0, 0, W, H);
+    const slice = candles.slice(0, visible);
+    const lo = Math.min(...slice.map((k) => k.l)) * 0.97, hi = Math.max(...slice.map((k) => k.h)) * 1.03;
+    const y = (v) => H - ((v - lo) / (hi - lo)) * (H - 20) - 10;
+    const cw = W / 70;
+    slice.forEach((k, i) => {
+      const up = k.c >= k.o, col = up ? "#22c55e" : "#ef4444", x = i * cw + cw / 2;
+      ctx.strokeStyle = col; ctx.beginPath(); ctx.moveTo(x, y(k.h)); ctx.lineTo(x, y(k.l)); ctx.stroke();
+      ctx.fillStyle = col; ctx.fillRect(x - cw * 0.32, y(Math.max(k.o, k.c)), cw * 0.64, Math.max(2, Math.abs(y(k.o) - y(k.c))));
+    });
+    if (markerPrice) {
+      ctx.setLineDash([6, 6]); ctx.strokeStyle = "#f59e0b"; ctx.beginPath();
+      ctx.moveTo(0, y(markerPrice)); ctx.lineTo(W, y(markerPrice)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = "#f59e0b"; ctx.font = "22px ui-monospace, Menlo, monospace";
+      ctx.fillText(D.symbol + "  " + markerPrice.toFixed(2), 12, y(markerPrice) - 8);
+    }
+  }
+
+  function show(id) { $(id).classList.add("show"); }
+  function hideAll() { ["ban-filled", "ban-margin", "ban-lev"].forEach((b) => $(b).classList.remove("show")); }
+
+  function render() {
+    const last = candles[visible - 1];
+    if (scene === 0) { visible = 60; draw(null); $("step").textContent = "Scene 0 / 4"; }
+    if (scene === 1) { visible = 70; draw(D.entryPrice); hideAll(); show("ban-filled");
+      $("pos").textContent = "—"; $("pl").innerHTML = '<span class="green">+' + D.profitPct + '%</span>';
+      $("note").textContent = "YH: 'Now is the perfect entry window!'"; $("step").textContent = "Scene 1 / 4"; }
+    if (scene === 2) { hideAll(); show("ban-lev"); $("pos").innerHTML = "RM 80,000 × " + D.leverage;
+      $("pl").innerHTML = '<span class="amber">borrowed margin</span>'; $("note").textContent = "Both borrow heavily to execute high-margin leveraged trades."; $("step").textContent = "Scene 2 / 4"; }
+    if (scene === 3) { visible = 70; draw(D.marginCallPrice); hideAll(); show("ban-margin");
+      $("pl").innerHTML = '<span class="red">−RM 79,990.00</span>'; $("note").textContent = "Cascading flash crash. Savings drained to cover the shortfall."; $("step").textContent = "Scene 3 / 4"; }
+    if (scene === 4) { hideAll(); $("balance").innerHTML = '<span class="red">RM ' + D.balanceAfter.toFixed(2) + "</span>";
+      $("pos").textContent = "CLOSED"; $("pl").textContent = "—"; $("note").textContent = "BALANCE: RM 10.01"; $("step").textContent = "Scene 4 / 4"; }
+    if (scene < 3) $("balance").textContent = money(D.balanceBefore);
+    if (scene === 3) $("balance").textContent = money(D.balanceBefore);
+    if (scene === 0) { $("pos").textContent = "—"; $("pl").textContent = "—"; }
+    $("next").disabled = scene >= 4;
+  }
+
+  $("next").addEventListener("click", () => { scene = Math.min(4, scene + 1); render(); });
+  $("reset").addEventListener("click", () => { scene = 0; hideAll(); render(); });
+  render();
+})();
+</script>
+</body>
+</html>

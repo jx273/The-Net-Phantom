@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Net Phantom — Screens</title>
+<link rel="stylesheet" href="shared/style.css">
+</head>
+<body>
+<nav class="switcher">
+  <span class="brand">THE NET PHANTOM · PROP SIMULATION</span>
+  <a href="index.html" class="active">Index</a>
+  <a href="1-stock.html">1 · Stock</a>
+  <a href="2-implant.html">2 · Logic</a>
+  <a href="3-auditor.html">3 · Funds</a>
+</nav>
+<main class="wrap">
+  <p class="title">KMPU3432 · Assignment 2 · Category 3: Workplace Integrity</p>
+  <h1>THE NET PHANTOM — Screen props</h1>
+  <div class="grid three">
+    <a class="panel" href="1-stock.html" style="text-decoration:none;color:inherit"><p class="label">Screen 1</p><p class="big">Trading terminal</p><div class="footnote">Stock chart, ORDER FILLED +28%, margin call, balance RM 10.01</div></a>
+    <a class="panel" href="2-implant.html" style="text-decoration:none;color:inherit"><p class="label">Screen 2</p><p class="big">Settlement console</p><div class="footnote">TX #99021 −RM 0.01, EXECUTE SCRIPT? YES / NO, accumulated diversion</div></a>
+    <a class="panel" href="3-auditor.html" style="text-decoration:none;color:inherit"><p class="label">Screen 3</p><p class="big">Audit findings</p><div class="footnote">RM 250k total, ledger flags, CCID referral</div></a>
+  </div>
+  <p class="footnote" style="margin-top:16px">Pure front-end. Open any HTML file directly in a browser. No backend, no API, no network needed. All numbers live in <code>shared/data.js</code>.</p>
+  <p class="footnote" style="margin-top:6px">Call to action: "<span id="cta"></span>"</p>
+</main>
+<script src="shared/data.js"></script>
+<script>document.getElementById("cta").textContent = window.PHANTOM.messages.callToAction;</script>
+</body>
+</html>
