@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Screen 3 — Audit Findings</title>
+<title>Audit Ledger</title>
 <link rel="stylesheet" href="shared/style.css">
+<script>if (!/[?&]ctrl=1/.test(location.search)) document.documentElement.classList.add("clean");</script>
 </head>
 <body>
 <nav class="switcher">
@@ -87,6 +88,11 @@
     $("status").innerHTML = '<span class="stamp" style="color:#fcd34d;border-color:#713f12">CASE REFERRED — CCID</span>';
     $("ban-ccid").classList.add("show");
   });
+
+  if (document.documentElement.classList.contains("clean")) {
+    setTimeout(() => $("reveal").click(), 1500);
+    setTimeout(() => $("ccid").click(), 4500);
+  }
 })();
 </script>
 </body>

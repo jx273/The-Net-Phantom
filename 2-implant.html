@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Screen 2 — Settlement Console</title>
+<title>Settlement</title>
 <link rel="stylesheet" href="shared/style.css">
+<script>if (!/[?&]ctrl=1/.test(location.search)) document.documentElement.classList.add("clean");</script>
 </head>
 <body>
 <nav class="switcher">
@@ -86,6 +87,7 @@
     step = 2; $("step").textContent = "Step 2 / 3";
     $("ban-prompt").classList.add("show"); $("btn-yes").disabled = false; $("btn-no").disabled = false;
     busy = false;
+    if (document.documentElement.classList.contains("clean")) setTimeout(yes, 2500);
   }
 
   async function yes() {
@@ -120,6 +122,7 @@
   $("btn-yes").addEventListener("click", yes);
   $("btn-no").addEventListener("click", no);
   $("reset").addEventListener("click", reset);
+  if (document.documentElement.classList.contains("clean")) setTimeout(run, 1000);
 })();
 </script>
 </body>

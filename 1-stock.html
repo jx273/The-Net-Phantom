@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Screen 1 — Trading App</title>
+<title>KLX Trade</title>
 <link rel="stylesheet" href="shared/style.css">
+<script>if (!/[?&]ctrl=1/.test(location.search)) document.documentElement.classList.add("clean");</script>
 <style>
   .app { display: grid; gap: 12px; grid-template-columns: 1fr; }
   @media (min-width: 1000px) { .app { grid-template-columns: 240px 1fr 300px; } }
@@ -258,8 +259,7 @@
   $("side-sell").addEventListener("click", () => { side = "SELL"; $("side-sell").classList.add("on"); $("side-buy").classList.remove("on"); renderTicket(); });
   ["qty", "px", "lev"].forEach((id) => $(id).addEventListener("input", () => { if (id === "px") $("px").dataset.touched = "1"; renderTicket(); }));
   $("place").addEventListener("click", () => {
-    const t = $("toast"); t.textContent = "Demo only — this order was not sent. Trading is simulated.";
-    t.classList.add("show"); clearTimeout(window.__t); window.__t = setTimeout(() => t.classList.remove("show"), 2200);
+    // Prop screen: the order button intentionally does nothing visible.
   });
 
   function render() { renderWatch(); renderHeader(); drawChart(); renderOrders(); renderAccount(); renderTicket(); renderMsgs(); }

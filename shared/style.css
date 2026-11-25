@@ -81,6 +81,10 @@ tr.flag td { color: #fca5a5; background: #1c0b0b; }
 .scene-bar .step { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-right: auto; }
 canvas { width: 100%; height: 320px; display: block; background: #04060a; border-radius: 8px; border: 1px solid var(--line); }
 
+/* Clean mode (default): only the screen itself is visible. Add ?ctrl=1 to the URL to show nav and presenter controls. */
+.clean .switcher, .clean .title, .clean .scene-bar, .clean .footnote, .clean .toast { display: none !important; }
+.clean body { padding-bottom: 0; }
+
 @keyframes fade { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @media (max-width: 600px) {
   .wrap { padding: 12px; }
