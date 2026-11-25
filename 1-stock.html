@@ -103,10 +103,6 @@
         </div>
       </div>
 
-      <div class="panel">
-        <p class="label">Messages · YH</p>
-        <div id="msgs" style="margin-top:6px"></div>
-      </div>
     </section>
   </div>
 </main>
@@ -241,9 +237,6 @@
   }
 
   // ---- Messages ----
-  function renderMsgs() {
-    $("msgs").innerHTML = T.messages.map((m) => '<div class="msg"><b>' + m.from + "</b> <span class=\"tag\">" + m.time + "</span><br>" + m.text + "</div>").join("");
-  }
 
   // ---- Events ----
   $("watch").addEventListener("click", (e) => {
@@ -262,7 +255,7 @@
     // Prop screen: the order button intentionally does nothing visible.
   });
 
-  function render() { renderWatch(); renderHeader(); drawChart(); renderOrders(); renderAccount(); renderTicket(); renderMsgs(); }
+  function render() { renderWatch(); renderHeader(); drawChart(); renderOrders(); renderAccount(); renderTicket(); }
   render();
 })();
 </script>
